@@ -84,7 +84,7 @@ export default function Timeline({ auth }) {
     try {
       // Load all periods in parallel for faster loading
       const promises = timelinePeriods.map(async (period) => {
-        const artworks = await getCuratedTimeline(period.id, 6);
+        const artworks = await getCuratedTimeline(period.id, 4);
         return { periodId: period.id, artworks };
       });
 
