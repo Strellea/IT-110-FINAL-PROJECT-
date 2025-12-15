@@ -21,6 +21,23 @@ export default function PeriodChapter({ period, artworks, onArtworkClick, isActi
       data-period-id={period.id}
       className="relative min-h-[300vh] z-10"
     >
+      {/* ALWAYS-ON BLUR LAYER */}
+      <div className="absolute inset-0 -z-20 bg-black/30 backdrop-blur-md backdrop-saturate-500" /> 
+
+      {/* CHAPTER BACKGROUND IMAGE (fade only image, not blur)
+      <motion.div
+        className="absolute inset-0 -z-10"
+        style={{
+          backgroundImage: `url(${period.background})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          // backdropFilter: isActive ? 'blur(12px)' : 'blur(8px)'
+        }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: isActive ? 1 : 0.2 }}
+        transition={{ duration: 2, ease: 'easeInOut' }}
+      />
+
       {/* Gradient Background */}
       <div 
         className="absolute inset-0 transition-opacity duration-1000"

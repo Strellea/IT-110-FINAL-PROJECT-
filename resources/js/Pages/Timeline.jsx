@@ -5,64 +5,85 @@ import { Head } from '@inertiajs/react';
 import ImmersiveScrollStory from '@/Components/Timeline/ImmersiveScrollStory';
 import ArtworkModal from '@/Components/Timeline/ArtworkModal';
 import { getCuratedTimeline } from '@/lib/metMuseum';
+// import bg1 from '@/assets/backgrounds/chapter1.jpg';
+// import bg2 from '@/assets/backgrounds/chapter2.png';
+// import bg3 from '@/assets/backgrounds/chapter3.jpg';
+// import bg4 from '@/assets/backgrounds/chapter4.jpg';
+// import bg5 from '@/assets/backgrounds/chapter5.jpg';
 
 const timelinePeriods = [
   {
-    id: 'renaissance',
-    title: 'Renaissance',
-    period: '1400–1600',
-    storyTitle: 'The Awakening',
-    narrative: 'In an age of discovery, humanity turned its gaze from the heavens back to earth. Artists became scientists. Scientists became artists. The human form was no longer a vessel of sin, but a celebration of divine creation.',
-    description: 'The rebirth of classical learning and the birth of humanism',
+    id: 'ancient',
+    title: 'Ancient World',
+    period: '3000 BCE – 500 CE',
+    storyTitle: 'Origins of Meaning',
+    narrative:
+      'In the earliest civilizations, art was inseparable from life itself. Images were created to honor gods, commemorate rulers, and impose order on the universe. Form followed function, symbolism outweighed realism, and art became a bridge between the human and the divine.',
+    description:
+      'Sacred symbols, idealized figures, and art as ritual, power, and belief',
     color: '#f59e0b',
     bgColor: 'from-amber-950/50 via-orange-950/30 to-black',
     accentColor: 'from-amber-400 to-orange-500',
+    // background: bg1,
   },
   {
-    id: 'baroque',
-    title: 'Baroque & Classical',
-    period: '1600–1800',
-    storyTitle: 'The Age of Drama',
-    narrative: 'Light danced with shadow. Emotion exploded onto canvas. The world was a theater, and every painting a performance. From the depths of darkness, beauty emerged—dramatic, passionate, alive.',
-    description: 'Drama, grandeur, and emotional intensity',
+    id: 'medieval',
+    title: 'Medieval Period',
+    period: '500 – 1400',
+    storyTitle: 'Faith Over Form',
+    narrative:
+      'As empires fell and faith rose, art turned inward and upward. Beauty was no longer measured by realism, but by devotion. Figures floated beyond time, gold illuminated the sacred, and images served as visual prayers for a world guided by spiritual truth.',
+    description:
+      'Religious symbolism, spiritual focus, and art as devotion',
     color: '#8b5cf6',
     bgColor: 'from-purple-950/50 via-indigo-950/30 to-black',
     accentColor: 'from-purple-400 to-indigo-500',
+    // background: bg2,
   },
   {
-    id: 'romanticism',
-    title: 'Romanticism & Impressionism',
-    period: '1800–1900',
-    storyTitle: 'The Revolution of Light',
-    narrative: 'Nature became the muse. Emotion, the language. Artists broke free from studios, painting life as it happened—fleeting moments of light on water, the shimmer of a sunrise, the blur of a bustling city.',
-    description: 'From emotional landscapes to capturing light',
+    id: 'renaissance',
+    title: 'Renaissance',
+    period: '1400 – 1600',
+    storyTitle: 'The Rebirth of Humanity',
+    narrative:
+      'Humanity rediscovered itself. Artists studied nature, anatomy, and perspective, blending scientific observation with artistic mastery. Inspired by classical antiquity, art celebrated balance, proportion, and the beauty of the human form.',
+    description:
+      'Humanism, realism, perspective, and classical revival',
     color: '#06b6d4',
     bgColor: 'from-cyan-950/50 via-blue-950/30 to-black',
     accentColor: 'from-cyan-400 to-blue-500',
+    // background: bg3,
   },
   {
-    id: 'modern',
-    title: 'Modern Art',
-    period: '1900–2000',
-    storyTitle: 'Breaking All Rules',
-    narrative: 'Reality fractured into geometric shapes. Dreams melted onto canvas. Art no longer mirrored the world—it questioned it, challenged it, reimagined it entirely. The artist became a revolutionary.',
-    description: 'From Cubism to Abstract Expressionism',
+    id: 'baroque',
+    title: 'Baroque & Enlightenment',
+    period: '1600 – 1800',
+    storyTitle: 'Emotion and Power',
+    narrative:
+      'Art became theatrical and persuasive. Movement replaced stillness, light cut through darkness, and emotion demanded attention. Whether serving church, crown, or reason, artists sought to overwhelm the senses and engage the viewer directly.',
+    description:
+      'Drama, movement, contrast, and emotional intensity',
     color: '#ef4444',
     bgColor: 'from-red-950/50 via-pink-950/30 to-black',
     accentColor: 'from-red-400 to-pink-500',
+    // background: bg4,
   },
   {
-    id: 'contemporary',
-    title: 'Contemporary',
-    period: '2000–Present',
-    storyTitle: 'The Digital Renaissance',
-    narrative: 'Art transcends canvas and gallery walls. Digital and physical merge. Global voices unite. Every medium is valid, every story worth telling. We stand at the intersection of all that came before—and all that is yet to come.',
-    description: 'Digital revolution meets global perspectives',
+    id: 'modern',
+    title: 'Modern & Contemporary',
+    period: '1800 – Present',
+    storyTitle: 'Breaking the Frame',
+    narrative:
+      'Tradition fractured. Artists rejected rules, questioned reality, and redefined what art could be. From abstraction to digital media, art became personal, political, experimental, and global—reflecting a rapidly changing world.',
+    description:
+      'Innovation, experimentation, and limitless forms of expression',
     color: '#10b981',
     bgColor: 'from-emerald-950/50 via-green-950/30 to-black',
     accentColor: 'from-emerald-400 to-green-500',
+    // background: bg5,
   },
 ];
+
 
 export default function Timeline({ auth }) {
   const [timelineData, setTimelineData] = useState({});

@@ -122,7 +122,7 @@ export default function Carousel3D({ artworks, period, onArtworkClick, isActive 
               <motion.div
                 initial={{ opacity: 0, scale: 0.5 }}
                 animate={{ 
-                  opacity: isFront ? 1 : 0.6, 
+                  opacity: 1, 
                   scale: isFront ? 1.15 : 0.9 
                 }}
                 transition={{ 

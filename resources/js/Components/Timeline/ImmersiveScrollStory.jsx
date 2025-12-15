@@ -6,6 +6,7 @@ import HeroSection from './HeroSection';
 import PeriodChapter from './PeriodChapter';
 import MinimalProgress from './MinimalProgress';
 import ThreeBackground from '../ThreeBackground';
+import TimelineClosing from './TimelineClosing';
 
 export default function ImmersiveScrollStory({ periods, artworksData, onArtworkClick }) {
   const containerRef = useRef(null);
@@ -181,6 +182,7 @@ export default function ImmersiveScrollStory({ periods, artworksData, onArtworkC
 
           {/* Minimal Progress Indicator */}
           <MinimalProgress periods={periods} currentPeriod={currentPeriod} />
+          <TimelineClosing />
         </>
       )}
     </div>

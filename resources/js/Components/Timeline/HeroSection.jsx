@@ -23,7 +23,7 @@ export default function HeroSection({ scrollYProgress, disableInitialAnimation =
           className="text-7xl md:text-9xl font-bold mb-6"
         >
           <span className="bg-gradient-to-r from-amber-200 via-orange-300 to-amber-200 bg-clip-text text-transparent">
-            Art History
+            Art is a Portal
           </span>
         </motion.h1>
         

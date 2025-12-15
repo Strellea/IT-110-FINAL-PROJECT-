@@ -7,6 +7,7 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
  * Search the Met Museum collection
+ * FILTERED BY DATE
  */
 export async function searchArtworks(query, options = {}) {
   try {
@@ -61,6 +62,10 @@ export async function getArtworkById(objectId, retries = 2) {
         artist: data.artistDisplayName || 'Unknown Artist',
         artistBio: data.artistDisplayBio || '',
         year: data.objectDate || 'Date Unknown',
+
+        objectBeginDate: data.objectBeginDate,
+        objectEndDate: data.objectEndDate,
+
         culture: data.culture || '',
         period: data.period || '',
         location: data.country || data.city || '',
@@ -90,11 +95,11 @@ export async function getArtworkById(objectId, retries = 2) {
 /**
  * Get multiple artworks by IDs - ONE AT A TIME to avoid rate limiting
  */
-export async function getArtworksByIds(objectIds, limit = 6) {
+export async function getArtworksByIds(objectIds, limit = 6, startDate, endDate) {
   const artworks = [];
-  const idsToTry = objectIds.slice(0, limit * 4); // Try 4x the limit
+  const idsToTry = objectIds.slice(0, limit * 10); // Try 4x the limit
   
-  console.log(`Attempting to fetch ${limit} artworks from ${idsToTry.length} IDs...`);
+  console.log(`Attempting to fetch ${limit} artworks from ${idsToTry.length} IDs (filtering ${startDate}-${endDate})...`);
   
   for (let i = 0; i < idsToTry.length && artworks.length < limit; i++) {
     // Fetch ONE at a time with delay
@@ -103,8 +108,20 @@ export async function getArtworksByIds(objectIds, limit = 6) {
     const artwork = await getArtworkById(idsToTry[i]);
     
     if (artwork && artwork.image) {
-      artworks.push(artwork);
-      console.log(`✓ Loaded artwork ${artworks.length}/${limit}: ${artwork.title}`);
+      const begin = artwork.objectBeginDate;
+      const end = artwork.objectEndDate;
+
+      // Range overlap check (handles BCE â†’ CE correctly)
+      if (begin <= endDate && end >= startDate) {
+        artworks.push(artwork);
+        console.log(
+          ` Loaded artwork ${artworks.length}/${limit}: ${artwork.title} (${begin} to ${end})`
+        );
+      } else {
+        console.log(
+          `— Skipped ${artwork.title} - wrong period (${begin} to ${end} not in ${startDate}-${endDate})`
+        );
+      }
     }
     
     // Stop if we have enough
@@ -118,38 +135,104 @@ export async function getArtworksByIds(objectIds, limit = 6) {
 }
 
 /**
+ * Extract year from Met Museum date strings
+ * Examples: "1503", "ca. 1665", "1889â€“90", "16th century"
+ */
+function extractYearFromDate(dateString) {
+  if (!dateString) return null;
+  
+  // Remove common prefixes
+  dateString = dateString.replace(/^(ca\.|about|before|after)\s*/i, '');
+  
+  // Extract first 4-digit number
+  const match = dateString.match(/\d{4}/);
+  if (match) {
+    return parseInt(match[0]);
+  }
+  
+  // Handle century format (e.g., "16th century" = 1500)
+  const centuryMatch = dateString.match(/(\d+)(st|nd|rd|th)\s+century/i);
+  if (centuryMatch) {
+    const century = parseInt(centuryMatch[1]);
+    return (century - 1) * 100 + 50; // Use middle of century
+  }
+
+   return null;
+}
+  
+
+/**
  * Curated collection for timeline periods
  */
 export const TIMELINE_QUERIES = {
+  ancient: {
+    title: 'Ancient World',
+    period: '3000 BCE â€“ 500 CE',
+    startDate: -3000,
+    endDate: 500,
+    queries: [
+      'Ancient Egyptian art',
+      'Mesopotamian art',
+      'Ancient Greek sculpture',
+      'Roman sculpture',
+      'Ancient Asian art'
+    ]
+  },
+
+  medieval: {
+    title: 'Medieval Period',
+    period: '500 â€“ 1400',
+    startDate: 500,
+    endDate: 1400,
+    queries: [
+      'Byzantine art',
+      'Gothic manuscript',
+      'Medieval Christian art',
+      'Illuminated manuscript',
+      'Early Christian art'
+    ]
+  },
+
   renaissance: {
-    period: '1400–1600',
-    queries: ['Renaissance painting', 'Italian Renaissance', 'Botticelli'],
+    title: 'Renaissance',
+    period: '1400 â€“ 1600',
     startDate: 1400,
-    endDate: 1600
+    endDate: 1600,
+    queries: [
+      'Italian Renaissance painting',
+      'Northern Renaissance',
+      'Leonardo da Vinci',
+      'Michelangelo',
+      'Raphael'
+    ]
   },
+
   baroque: {
-    period: '1600–1800',
-    queries: ['Baroque painting', 'Rembrandt', 'Vermeer'],
+    title: 'Baroque & Enlightenment',
+    period: '1600 â€“ 1800',
     startDate: 1600,
-    endDate: 1800
+    endDate: 1800,
+    queries: [
+      'Baroque painting',
+      'Rococo art',
+      'Caravaggio',
+      'Rembrandt',
+      'Vermeer'
+    ]
   },
-  romanticism: {
-    period: '1800–1900',
-    queries: ['Impressionism', 'Monet', 'Turner'],
-    startDate: 1800,
-    endDate: 1900
-  },
+
   modern: {
-    period: '1900–2000',
-    queries: ['Modern art', 'Picasso', 'Abstract art'],
-    startDate: 1900,
-    endDate: 2000
-  },
-  contemporary: {
-    period: '2000–Present',
-    queries: ['Contemporary art', 'Photography', 'Sculpture'],
-    startDate: 2000,
-    endDate: new Date().getFullYear()
+    title: 'Modern & Contemporary',
+    period: '1800 â€“ Present',
+    startDate: 1800,
+    endDate: new Date().getFullYear(),
+    queries: [
+      'Impressionism',
+      'Cubism',
+      'Abstract art',
+      'Modern art',
+      'Contemporary art'
+    ]
   }
 };
 
@@ -161,15 +244,15 @@ export async function getCuratedTimeline(timelineKey, limit = 6) {
   if (!timeline) return [];
   
   try {
-    console.log(`\n📚 Fetching ${limit} artworks for ${timelineKey}...`);
+    console.log(`\ Fetching ${limit} artworks for ${timelineKey} (${timeline.startDate}-${timeline.endDate})...`);
     
     const allObjectIds = [];
     
-    // Search using queries (reduced to 3 queries per period)
+    // Search using queries 
     for (const query of timeline.queries) {
       try {
         const ids = await searchArtworks(query, { hasImages: true });
-        allObjectIds.push(...ids.slice(0, 10)); // Get 10 from each query
+        allObjectIds.push(...ids.slice(0, 20)); // Get 10 from each query
         await delay(400); // Delay between searches
       } catch (error) {
         console.warn(`Failed to search for "${query}"`);
@@ -183,9 +266,9 @@ export async function getCuratedTimeline(timelineKey, limit = 6) {
     console.log(`Found ${shuffled.length} unique artwork IDs for ${timelineKey}`);
     
     // Fetch artwork details
-    const artworks = await getArtworksByIds(shuffled, limit);
+    const artworks = await getArtworksByIds(shuffled, limit, timeline.startDate, timeline.endDate);
     
-    console.log(`✅ Completed ${timelineKey}: ${artworks.length} artworks\n`);
+    console.log(`Completed ${timelineKey}: ${artworks.length} artworks\n`);
     return artworks;
   } catch (error) {
     console.error(`Error fetching curated timeline for ${timelineKey}:`, error);

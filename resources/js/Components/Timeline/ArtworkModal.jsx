@@ -2,16 +2,19 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Calendar, User, MapPin, Palette, ExternalLink, Sparkles } from 'lucide-react';
+import { X, Calendar, User, MapPin, Palette, ExternalLink, Sparkles, Heart } from 'lucide-react';
 
 export default function ArtworkModal({ 
   artwork, 
   onClose, 
-  periodColor = '#f59e0b'
+  periodColor = '#f59e0b',
+  isAuthenticated = false,
+  onSave = null,
+  isSaved = false
 }) {
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [localSaved, setLocalSaved] = useState(isSaved);
 
-  // Close on ESC key
   useEffect(() => {
     const handleEsc = (e) => {
       if (e.key === 'Escape') onClose();
@@ -24,6 +27,19 @@ export default function ArtworkModal({
       window.removeEventListener('keydown', handleEsc);
     };
   }, [onClose]);
+
+  const handleSave = () => {
+    if (!isAuthenticated) {
+      window.location.href = '/login';
+      return;
+    }
+    
+    setLocalSaved(!localSaved);
+    
+    if (onSave) {
+      onSave(artwork, !localSaved);
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -40,7 +56,7 @@ export default function ArtworkModal({
           exit={{ scale: 0.8, rotateY: 90 }}
           transition={{ type: 'spring', stiffness: 200, damping: 25 }}
           onClick={(e) => e.stopPropagation()}
-          className="relative max-w-6xl w-full bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-3xl overflow-hidden border-2 shadow-2xl"
+          className="relative max-w-4xl w-full bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-2xl overflow-hidden border shadow-2xl"
           style={{ borderColor: periodColor }}
         >
           {/* Close Button */}
@@ -48,18 +64,19 @@ export default function ArtworkModal({
             onClick={onClose}
             whileHover={{ scale: 1.1, rotate: 90 }}
             whileTap={{ scale: 0.9 }}
-            className="absolute top-6 right-6 z-10 w-12 h-12 flex items-center justify-center bg-black/50 backdrop-blur-sm rounded-full text-white hover:bg-black/70 transition-all group"
+            className="absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center bg-black/50 backdrop-blur-sm rounded-full text-white hover:bg-black/70 transition-all"
           >
-            <X size={24} className="group-hover:rotate-90 transition-transform" />
+            <X size={24} />
           </motion.button>
 
           {/* Decorative Glow Elements */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-radial from-amber-500/10 to-transparent rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-radial from-purple-500/10 to-transparent rounded-full blur-3xl" />
 
-          <div className="grid md:grid-cols-2 gap-0">
+          {/* Consistent height for all modals */}
+          <div className="grid md:grid-cols-2 gap-0 h-[85vh] max-h-[700px] min-h-0">
             {/* Image Section */}
-            <div className="relative min-h-[300px] md:min-h-[600px] overflow-hidden bg-black">
+            <div className="relative h-full overflow-hidden bg-black">
               {artwork.image ? (
                 <>
                   <motion.img
@@ -76,7 +93,6 @@ export default function ArtworkModal({
                     onLoad={() => setImageLoaded(true)}
                   />
                   
-                  {/* Loading Spinner */}
                   {!imageLoaded && (
                     <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
                       <motion.div
@@ -93,10 +109,8 @@ export default function ArtworkModal({
                 </div>
               )}
               
-              {/* Gradient Overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
               
-              {/* Sparkle Effect */}
               <motion.div
                 animate={{ 
                   opacity: [0.3, 0.6, 0.3],
@@ -109,91 +123,102 @@ export default function ArtworkModal({
               </motion.div>
             </div>
             
-            {/* Details Section */}
-            <div className="p-6 md:p-12 flex flex-col justify-center overflow-y-auto max-h-[600px]">
-              {/* Title */}
-              <motion.h2
-                initial={{ x: -50, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="text-3xl md:text-4xl font-bold text-white mb-4 leading-tight"
-              >
-                {artwork.title}
-              </motion.h2>
+            {/* Details Section with FIXED scrolling layout */}
+            <div className="p-6 md:p-8 flex flex-col h-full min-h-0">
+              {/* Scrollable Content Area - takes available space */}
+              <div className="flex-1 overflow-y-auto pr-2 pb-32 min-h-0 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
+                {/* Title */}
+                <motion.h2
+                  initial={{ x: -50, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="text-2xl md:text-3xl font-bold text-white mb-3 leading-tight"
+                >
+                  {artwork.title}
+                </motion.h2>
 
-              {/* Artist */}
-              <motion.div
-                initial={{ x: -50, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.3 }}
-                className="flex items-center gap-3 mb-8"
-              >
-                <div className="p-2 bg-amber-500/20 rounded-full">
-                  <User size={20} className="text-amber-400" />
-                </div>
-                <span className="text-xl md:text-2xl text-amber-300 font-medium">
-                  {artwork.artist}
-                </span>
-              </motion.div>
-              
-              {/* Metadata Grid */}
-              <motion.div
-                initial={{ x: -50, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.4 }}
-                className="grid grid-cols-1 gap-3 mb-8"
-              >
-                {artwork.year && (
-                  <div className="flex items-center gap-3 text-gray-300 bg-white/5 rounded-lg p-3 backdrop-blur-sm border border-white/10">
-                    <Calendar size={18} className="text-blue-400 flex-shrink-0" />
-                    <span className="text-sm">{artwork.year}</span>
-                  </div>
-                )}
-                
-                {artwork.location && (
-                  <div className="flex items-center gap-3 text-gray-300 bg-white/5 rounded-lg p-3 backdrop-blur-sm border border-white/10">
-                    <MapPin size={18} className="text-green-400 flex-shrink-0" />
-                    <span className="text-sm">{artwork.location}</span>
-                  </div>
-                )}
-                
-                {artwork.medium && (
-                  <div className="flex items-center gap-3 text-gray-300 bg-white/5 rounded-lg p-3 backdrop-blur-sm border border-white/10">
-                    <Palette size={18} className="text-purple-400 flex-shrink-0" />
-                    <span className="text-xs">{artwork.medium}</span>
-                  </div>
-                )}
-              </motion.div>
-
-              {/* Description */}
-              {artwork.description && (
+                {/* Artist */}
                 <motion.div
                   initial={{ x: -50, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="border-t border-gray-700 pt-6 mb-6"
+                  transition={{ delay: 0.3 }}
+                  className="flex items-center gap-3 mb-6"
                 >
-                  <p className="text-gray-300 text-sm leading-relaxed">
-                    {artwork.description}
-                  </p>
+                  <div className="p-2 bg-amber-500/20 rounded-full">
+                    <User size={20} className="text-amber-400" />
+                  </div>
+                  <span className="text-lg md:text-xl text-amber-300 font-medium">
+                    {artwork.artist}
+                  </span>
                 </motion.div>
-              )}
+                
+                {/* Metadata Grid */}
+                <motion.div
+                  initial={{ x: -50, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                  className="grid grid-cols-1 gap-3 mb-6"
+                >
+                  {artwork.year && (
+                    <div className="flex items-center gap-3 text-gray-300 bg-white/5 rounded-lg p-3 backdrop-blur-sm border border-white/10">
+                      <Calendar size={18} className="text-blue-400 flex-shrink-0" />
+                      <span className="text-sm">{artwork.year}</span>
+                    </div>
+                  )}
+                  
+                  {artwork.location && (
+                    <div className="flex items-center gap-3 text-gray-300 bg-white/5 rounded-lg p-3 backdrop-blur-sm border border-white/10">
+                      <MapPin size={18} className="text-green-400 flex-shrink-0" />
+                      <span className="text-sm">{artwork.location}</span>
+                    </div>
+                  )}
+                  
+                  {artwork.medium && (
+                    <div className="flex items-center gap-3 text-gray-300 bg-white/5 rounded-lg p-3 backdrop-blur-sm border border-white/10">
+                      <Palette size={18} className="text-purple-400 flex-shrink-0" />
+                      <span className="text-sm">{artwork.medium}</span>
+                    </div>
+                  )}
+                </motion.div>
 
-              {/* Action Buttons */}
+                {/* Description - no clamp, let it flow naturally */}
+                {artwork.description && (
+                  <motion.div
+                    initial={{ x: -50, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                    className="border-t border-gray-700 pt-4 mb-6"
+                  >
+                    <p className="text-gray-300 text-sm leading-relaxed">
+                      {artwork.description}
+                    </p>
+                  </motion.div>
+                )}
+              </div>
+
+              {/* Action Buttons - ALWAYS VISIBLE, never scrolls away */}
               <motion.div
                 initial={{ x: -50, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 0.6 }}
-                className="flex flex-wrap gap-4"
+                className="flex flex-wrap gap-3 pt-4 mt-4 border-t border-gray-700/50 flex-shrink-0"
               >
-                {/* Continue Button */}
+                {/* Save Button */}
                 <motion.button
-                  onClick={onClose}
+                  onClick={handleSave}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all shadow-lg"
+                  className={`inline-flex items-center gap-2 px-4 py-2.5 font-semibold rounded-lg transition-all shadow-lg text-sm ${
+                    localSaved 
+                      ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white' 
+                      : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
+                  }`}
                 >
-                  Continue Journey
+                  <Heart 
+                    size={16} 
+                    className={localSaved ? 'fill-current' : ''} 
+                  />
+                  <span>{localSaved ? 'Saved' : 'Save'}</span>
                 </motion.button>
 
                 {/* Met Museum Link */}
@@ -204,26 +229,26 @@ export default function ArtworkModal({
                     rel="noopener noreferrer"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg transition-all"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg transition-all text-sm"
                   >
                     <span>View Original</span>
-                    <ExternalLink size={18} />
+                    <ExternalLink size={16} />
                   </motion.a>
                 )}
-              </motion.div>
 
-              {/* Public Domain Badge */}
-              {artwork.isPublicDomain && (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.8, type: "spring" }}
-                  className="mt-6 inline-flex items-center px-4 py-2 bg-green-500/20 text-green-400 text-sm font-semibold rounded-lg border border-green-500/30"
-                >
-                  <Sparkles size={16} className="mr-2" />
-                  Public Domain
-                </motion.div>
-              )}
+                {/* Public Domain Badge - inline with buttons */}
+                {artwork.isPublicDomain && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.8, type: "spring" }}
+                    className="inline-flex items-center px-3 py-2 bg-green-500/20 text-green-400 text-xs font-semibold rounded-lg border border-green-500/30"
+                  >
+                    <Sparkles size={14} className="mr-2" />
+                    Public Domain
+                  </motion.div>
+                )}
+              </motion.div>
             </div>
           </div>
         </motion.div>

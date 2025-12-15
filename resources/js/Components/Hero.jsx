@@ -19,9 +19,9 @@ export default function Hero({ onBegin }) {
       </div> 
 
       {/* CONTENT */}
-      <div className="relative z-30 max-w-7xl mx-auto px-6 h-full flex items-center">
+      <div className="relative z-30 max-w-7xl mx-auto px-6 h-full flex items-center justify-center text-center">
         {/* LEFT SIDE: TEXT */}
-        <div className="w-1/2">
+        <div className="flex flex-col items-center">
           
           {/* TYPEWRITER TITLE */}
           <motion.h1
