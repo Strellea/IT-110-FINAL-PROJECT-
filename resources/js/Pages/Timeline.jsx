@@ -156,34 +156,48 @@ export default function Timeline({ auth }) {
     setSelectedArtwork(currentArtworks[newIndex]);
   };
 
-  const handleSaveToCollection = async (artwork) => {
+  const handleSaveToCollection = async (artwork, shouldSave) => {
     if (!auth?.user) {
       window.location.href = '/login';
       return;
     }
 
     try {
-      const response = await fetch('/api/collection', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-        },
-        body: JSON.stringify({
-          artwork_id: artwork.id,
-          title: artwork.title,
-          artist: artwork.artist,
-          year: artwork.year,
-          image: artwork.image,
-          period: artwork.period,
-        }),
-      });
+      if (shouldSave) {
+        const response = await fetch('/api/collection', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+          },
+          body: JSON.stringify({
+            artwork_id: artwork.id,
+            title: artwork.title,
+            artist: artwork.artist,
+            year: artwork.year,
+            image: artwork.image,
+            period: artwork.period,
+            location: artwork.location,
+            description: artwork.description,
+          }),
+        });
 
-      if (response.ok) {
-        setSavedArtworks([...savedArtworks, artwork.id]);
+        if (response.ok) {
+          setSavedArtworks([...savedArtworks, artwork.id]);
+        }
+      } else {
+        const response = await fetch(`/api/collection/${artwork.id}`, {
+          method: 'DELETE',
+          headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+          },
+        });
+        if (response.ok) {
+          setSavedArtworks(savedArtworks.filter(id => id !== artwork.id));
+        }
       }
     } catch (error) {
-      console.error('Error saving artwork:', error);
+      console.error('Error saving/removing artwork:', error);
     }
   };
 
@@ -220,13 +234,9 @@ export default function Timeline({ auth }) {
         <ArtworkModal
           artwork={selectedArtwork}
           onClose={handleClose}
-          onPrev={handlePrev}
-          onNext={handleNext}
-          hasPrev={currentIndex > 0}
-          hasNext={currentIndex < currentArtworks.length - 1}
+          periodColor={timelinePeriods.find(p => p.id === selectedArtwork.periodId)?.color}
           isSaved={savedArtworks.includes(selectedArtwork.id)}
-          onSave={() => handleSaveToCollection(selectedArtwork)}
-          onRemove={() => handleRemoveFromCollection(selectedArtwork.id)}
+          onSave={handleSaveToCollection}
           isAuthenticated={!!auth?.user}
         />
       )}
