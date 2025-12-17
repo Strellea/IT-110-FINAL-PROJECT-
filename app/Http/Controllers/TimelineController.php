@@ -5,18 +5,18 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
 
 class TimelineController extends Controller
 {
     private $metApiBase = 'https://collectionapi.metmuseum.org/public/collection/v1';
 
     /**
-     * Get artworks by time period with server-side caching
+     * Get artworks by time period
+     * This provides server-side caching for better performance
      */
     public function getByPeriod(Request $request, $period)
     {
-        $cacheKey = "timeline_period_{$period}_v2";
+        $cacheKey = "timeline_period_{$period}";
         
         // Cache for 24 hours
         $artworks = Cache::remember($cacheKey, 86400, function () use ($period) {
@@ -36,22 +36,16 @@ class TimelineController extends Controller
         // Cache for 7 days
         $artwork = Cache::remember($cacheKey, 604800, function () use ($id) {
             try {
-                $response = Http::timeout(10)->get("{$this->metApiBase}/objects/{$id}");
+                $response = Http::get("{$this->metApiBase}/objects/{$id}");
                 
                 if ($response->successful()) {
                     $data = $response->json();
-                    
-                    // Only return if has image
-                    if (empty($data['primaryImage']) && empty($data['primaryImageSmall'])) {
-                        return null;
-                    }
-                    
                     return $this->formatArtwork($data);
                 }
                 
                 return null;
             } catch (\Exception $e) {
-                Log::error("Error fetching artwork {$id}: " . $e->getMessage());
+                \Log::error("Error fetching artwork {$id}: " . $e->getMessage());
                 return null;
             }
         });
@@ -65,81 +59,47 @@ class TimelineController extends Controller
     private function fetchArtworksForPeriod($period)
     {
         $queries = $this->getPeriodQueries($period);
-        $dateRange = $this->getPeriodDateRange($period);
         $artworks = [];
-        $maxArtworks = 4; // Limit to 4 per period
 
         foreach ($queries as $query) {
-            if (count($artworks) >= $maxArtworks) {
-                break;
-            }
-
             try {
                 // Search for objects
-                $searchResponse = Http::timeout(10)->get("{$this->metApiBase}/search", [
+                $searchResponse = Http::get("{$this->metApiBase}/search", [
                     'q' => $query,
                     'hasImages' => 'true'
                 ]);
 
                 if ($searchResponse->successful()) {
-                    $data = $searchResponse->json();
-                    $objectIds = $data['objectIDs'] ?? [];
+                    $objectIds = $searchResponse->json()['objectIDs'] ?? [];
                     
-                    // Shuffle and limit IDs
-                    shuffle($objectIds);
-                    $limitedIds = array_slice($objectIds, 0, 15);
+                    // Get first 10 IDs
+                    $limitedIds = array_slice($objectIds, 0, 10);
                     
                     // Fetch details for each object
                     foreach ($limitedIds as $id) {
-                        if (count($artworks) >= $maxArtworks) {
-                            break 2;
-                        }
-
-                        // Add delay to respect rate limits
-                        usleep(300000); // 300ms delay
+                        $objectResponse = Http::get("{$this->metApiBase}/objects/{$id}");
                         
-                        try {
-                            $objectResponse = Http::timeout(10)->get("{$this->metApiBase}/objects/{$id}");
+                        if ($objectResponse->successful()) {
+                            $data = $objectResponse->json();
                             
-                            if ($objectResponse->successful()) {
-                                $data = $objectResponse->json();
-                                
-                                // Check if has image and is in date range
-                                if (!empty($data['primaryImage']) && $this->isInDateRange($data, $dateRange)) {
-                                    $artworks[] = $this->formatArtwork($data);
-                                }
+                            // Only include if has primary image
+                            if (!empty($data['primaryImage'])) {
+                                $artworks[] = $this->formatArtwork($data);
                             }
-                        } catch (\Exception $e) {
-                            // Skip this artwork and continue
-                            Log::warning("Failed to fetch artwork {$id}: " . $e->getMessage());
-                            continue;
+                        }
+                        
+                        // Stop if we have 5 artworks
+                        if (count($artworks) >= 5) {
+                            break 2;
                         }
                     }
                 }
             } catch (\Exception $e) {
-                Log::error("Error searching period {$period} with query '{$query}': " . $e->getMessage());
+                \Log::error("Error fetching period {$period}: " . $e->getMessage());
             }
         }
 
         return $artworks;
-    }
-
-    /**
-     * Check if artwork is in date range
-     */
-    private function isInDateRange($data, $dateRange)
-    {
-        if (!$dateRange) return true;
-
-        $beginDate = $data['objectBeginDate'] ?? null;
-        $endDate = $data['objectEndDate'] ?? null;
-
-        if ($beginDate === null || $endDate === null) {
-            return false;
-        }
-
-        // Range overlap check
-        return $beginDate <= $dateRange['end'] && $endDate >= $dateRange['start'];
     }
 
     /**
@@ -153,8 +113,6 @@ class TimelineController extends Controller
             'artist' => $data['artistDisplayName'] ?? 'Unknown Artist',
             'artistBio' => $data['artistDisplayBio'] ?? '',
             'year' => $data['objectDate'] ?? 'Date Unknown',
-            'objectBeginDate' => $data['objectBeginDate'] ?? null,
-            'objectEndDate' => $data['objectEndDate'] ?? null,
             'culture' => $data['culture'] ?? '',
             'period' => $data['period'] ?? '',
             'location' => $data['country'] ?? $data['city'] ?? '',
@@ -178,29 +136,13 @@ class TimelineController extends Controller
     private function getPeriodQueries($period)
     {
         $queries = [
-            'ancient' => ['Ancient Egyptian', 'Greek sculpture', 'Roman art', 'Mesopotamian', 'Ancient Asian'],
-            'medieval' => ['Byzantine', 'Gothic manuscript', 'Medieval Christian', 'Illuminated manuscript', 'Romanesque'],
-            'renaissance' => ['Italian Renaissance', 'Leonardo', 'Michelangelo', 'Raphael', 'Botticelli'],
+            'renaissance' => ['Renaissance', 'Leonardo da Vinci', 'Michelangelo', 'Raphael', 'Botticelli'],
             'baroque' => ['Baroque', 'Rembrandt', 'Caravaggio', 'Vermeer', 'Velázquez'],
-            'modern' => ['Impressionism', 'Cubism', 'Abstract', 'Modern art', 'Contemporary']
+            'romanticism' => ['Romanticism', 'Impressionism', 'Van Gogh', 'Monet', 'Delacroix'],
+            'modern' => ['Modern art', 'Picasso', 'Abstract', 'Cubism', 'Surrealism'],
+            'contemporary' => ['Contemporary art', 'Installation', 'Digital art', 'Photography', 'Sculpture']
         ];
 
         return $queries[$period] ?? [];
-    }
-
-    /**
-     * Get date range for period
-     */
-    private function getPeriodDateRange($period)
-    {
-        $ranges = [
-            'ancient' => ['start' => -3000, 'end' => 500],
-            'medieval' => ['start' => 500, 'end' => 1400],
-            'renaissance' => ['start' => 1400, 'end' => 1600],
-            'baroque' => ['start' => 1600, 'end' => 1800],
-            'modern' => ['start' => 1800, 'end' => date('Y')]
-        ];
-
-        return $ranges[$period] ?? null;
     }
 }

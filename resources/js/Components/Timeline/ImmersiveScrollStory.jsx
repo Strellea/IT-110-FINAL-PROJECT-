@@ -8,16 +8,37 @@ import MinimalProgress from './MinimalProgress';
 import ThreeBackground from '../ThreeBackground';
 import TimelineClosing from './TimelineClosing';
 
-export default function ImmersiveScrollStory({ periods, artworksData, onArtworkClick }) {
+export default function ImmersiveScrollStory({ periods, artworksData, onArtworkClick, isLoading }) {
   const containerRef = useRef(null);
   const [currentPeriod, setCurrentPeriod] = useState(0);
   const [showIntro, setShowIntro] = useState(true);
-  const { scrollYProgress } = useScroll();
+  const [minTimeElapsed, setMinTimeElapsed] = useState(false);
+  
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end end"]
+  });
 
+  // ✅ Ensure intro shows for minimum 3 seconds
   useEffect(() => {
-    const timer = setTimeout(() => setShowIntro(false), 4000);
-    return () => clearTimeout(timer);
+    const minTimer = setTimeout(() => {
+      setMinTimeElapsed(true);
+    }, 3000);
+
+    return () => clearTimeout(minTimer);
   }, []);
+
+  // ✅ Hide intro only when BOTH conditions are met:
+  // 1. Data is loaded (!isLoading)
+  // 2. Minimum 3 seconds have passed (minTimeElapsed)
+  useEffect(() => {
+    if (!isLoading && minTimeElapsed) {
+      // Small delay for smooth transition
+      setTimeout(() => {
+        setShowIntro(false);
+      }, 500);
+    }
+  }, [isLoading, minTimeElapsed]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -32,13 +53,13 @@ export default function ImmersiveScrollStory({ periods, artworksData, onArtworkC
   }, [periods]);
 
   return (
-    <div ref={containerRef} className="relative bg-black">
+    <div ref={containerRef} className="relative bg-black min-h-screen">
       {/* 3D BACKGROUND */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
+      <div className="fixed inset-0 z-0 pointer-events-none">
         <ThreeBackground />
       </div>
 
-      {/* Intro Animation */}
+      {/* Intro Animation - Waits for data loading */}
       <AnimatePresence>
         {showIntro && (
           <motion.div
@@ -50,7 +71,6 @@ export default function ImmersiveScrollStory({ periods, artworksData, onArtworkC
             <motion.div className="text-center">
               {/* Animated Rotating Icon */}
               <div className="relative w-40 h-40 mx-auto mb-12">
-                {/* Outer rotating ring */}
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ 
@@ -61,7 +81,6 @@ export default function ImmersiveScrollStory({ periods, artworksData, onArtworkC
                   className="absolute inset-0 border-[3px] border-amber-500/20 border-t-amber-500 rounded-full"
                 />
                 
-                {/* Middle rotating ring */}
                 <motion.div
                   animate={{ rotate: -360 }}
                   transition={{ 
@@ -72,7 +91,6 @@ export default function ImmersiveScrollStory({ periods, artworksData, onArtworkC
                   className="absolute inset-6 border-[3px] border-orange-500/20 border-t-orange-500 rounded-full"
                 />
                 
-                {/* Inner pulsing diamond */}
                 <motion.div
                   animate={{ 
                     scale: [1, 1.3, 1],
@@ -88,7 +106,6 @@ export default function ImmersiveScrollStory({ periods, artworksData, onArtworkC
                   <div className="w-16 h-16 bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600 rounded-lg transform rotate-45 shadow-2xl shadow-amber-500/50" />
                 </motion.div>
 
-                {/* Sparkle effects */}
                 <motion.div
                   animate={{ 
                     opacity: [0, 1, 0],
@@ -116,7 +133,6 @@ export default function ImmersiveScrollStory({ periods, artworksData, onArtworkC
                 />
               </div>
               
-              {/* Title with staggered animation */}
               <motion.h1 
                 className="text-6xl md:text-7xl font-bold mb-6"
                 initial={{ opacity: 0, y: 20 }}
@@ -128,17 +144,21 @@ export default function ImmersiveScrollStory({ periods, artworksData, onArtworkC
                 </span>
               </motion.h1>
               
-              {/* Subtitle */}
+              {/* ✅ Dynamic subtitle based on loading state */}
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.8, delay: 0.8 }}
                 className="text-gray-400 text-xl mb-8"
               >
-                Preparing your immersive experience...
+                {isLoading 
+                  ? 'Curating your art collection...' 
+                  : minTimeElapsed 
+                    ? 'Ready! Entering timeline...' 
+                    : 'Preparing experience...'}
               </motion.p>
 
-              {/* Loading bar */}
+              {/* ✅ Loading bar shows real progress */}
               <motion.div 
                 className="w-72 mx-auto"
                 initial={{ opacity: 0 }}
@@ -148,16 +168,28 @@ export default function ImmersiveScrollStory({ periods, artworksData, onArtworkC
                 <div className="h-1.5 bg-gray-800/50 rounded-full overflow-hidden backdrop-blur-sm">
                   <motion.div
                     initial={{ width: "0%" }}
-                    animate={{ width: "100%" }}
+                    animate={{ 
+                      width: isLoading ? "85%" : "100%"
+                    }}
                     transition={{ 
-                      duration: 2.5, 
-                      delay: 1.3,
-                      ease: "easeInOut"
+                      duration: isLoading ? 20 : 0.5,
+                      ease: isLoading ? "easeOut" : "easeInOut"
                     }}
                     className="h-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 shadow-lg shadow-amber-500/50"
                   />
                 </div>
               </motion.div>
+
+              {/* ✅ Optional: Loading percentage (if you want to show progress) */}
+              {isLoading && (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-gray-500 text-sm mt-4"
+                >
+                  Loading artworks from Met Museum...
+                </motion.p>
+              )}
             </motion.div>
           </motion.div>
         )}
@@ -165,10 +197,8 @@ export default function ImmersiveScrollStory({ periods, artworksData, onArtworkC
 
       {!showIntro && (
         <>
-          {/* Hero Section */}
-          <HeroSection scrollYProgress={scrollYProgress} disableInitialAnimation  />
+          <HeroSection scrollYProgress={scrollYProgress} disableInitialAnimation />
 
-          {/* Period Chapters with 3D Galleries */}
           {periods.map((period, index) => (
             <PeriodChapter
               key={period.id}
@@ -180,7 +210,6 @@ export default function ImmersiveScrollStory({ periods, artworksData, onArtworkC
             />
           ))}
 
-          {/* Minimal Progress Indicator */}
           <MinimalProgress periods={periods} currentPeriod={currentPeriod} />
           <TimelineClosing />
         </>

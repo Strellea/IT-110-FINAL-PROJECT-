@@ -5,11 +5,6 @@ import { Head } from '@inertiajs/react';
 import ImmersiveScrollStory from '@/Components/Timeline/ImmersiveScrollStory';
 import ArtworkModal from '@/Components/Timeline/ArtworkModal';
 import { getCuratedTimeline } from '@/lib/metMuseum';
-// import bg1 from '@/assets/backgrounds/chapter1.jpg';
-// import bg2 from '@/assets/backgrounds/chapter2.png';
-// import bg3 from '@/assets/backgrounds/chapter3.jpg';
-// import bg4 from '@/assets/backgrounds/chapter4.jpg';
-// import bg5 from '@/assets/backgrounds/chapter5.jpg';
 
 const timelinePeriods = [
   {
@@ -24,7 +19,6 @@ const timelinePeriods = [
     color: '#f59e0b',
     bgColor: 'from-amber-950/50 via-orange-950/30 to-black',
     accentColor: 'from-amber-400 to-orange-500',
-    // background: bg1,
   },
   {
     id: 'medieval',
@@ -38,7 +32,6 @@ const timelinePeriods = [
     color: '#8b5cf6',
     bgColor: 'from-purple-950/50 via-indigo-950/30 to-black',
     accentColor: 'from-purple-400 to-indigo-500',
-    // background: bg2,
   },
   {
     id: 'renaissance',
@@ -52,7 +45,6 @@ const timelinePeriods = [
     color: '#06b6d4',
     bgColor: 'from-cyan-950/50 via-blue-950/30 to-black',
     accentColor: 'from-cyan-400 to-blue-500',
-    // background: bg3,
   },
   {
     id: 'baroque',
@@ -66,7 +58,6 @@ const timelinePeriods = [
     color: '#ef4444',
     bgColor: 'from-red-950/50 via-pink-950/30 to-black',
     accentColor: 'from-red-400 to-pink-500',
-    // background: bg4,
   },
   {
     id: 'modern',
@@ -80,10 +71,8 @@ const timelinePeriods = [
     color: '#10b981',
     bgColor: 'from-emerald-950/50 via-green-950/30 to-black',
     accentColor: 'from-emerald-400 to-green-500',
-    // background: bg5,
   },
 ];
-
 
 export default function Timeline({ auth }) {
   const [timelineData, setTimelineData] = useState({});
@@ -91,8 +80,10 @@ export default function Timeline({ auth }) {
   const [currentArtworks, setCurrentArtworks] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [savedArtworks, setSavedArtworks] = useState([]);
+  const [isLoading, setIsLoading] = useState(true); // ✅ Add loading state
 
   useEffect(() => {
+    // ✅ Start loading immediately when component mounts
     loadTimelineData();
     if (auth?.user) {
       loadSavedArtworks();
@@ -101,9 +92,13 @@ export default function Timeline({ auth }) {
 
   const loadTimelineData = async () => {
     const data = {};
+    setIsLoading(true);
 
     try {
-      // Load all periods in parallel for faster loading
+      console.log('🚀 Loading timeline data...');
+      const startTime = Date.now();
+
+      // ✅ Load all periods in parallel
       const promises = timelinePeriods.map(async (period) => {
         const artworks = await getCuratedTimeline(period.id, 4);
         return { periodId: period.id, artworks };
@@ -114,9 +109,14 @@ export default function Timeline({ auth }) {
         data[periodId] = artworks;
       });
 
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      console.log(`✨ Timeline loaded in ${elapsed}s`);
+
       setTimelineData(data);
     } catch (error) {
       console.error('Error loading timeline data:', error);
+    } finally {
+      setIsLoading(false); // ✅ Set loading to false when done
     }
   };
 
@@ -156,48 +156,34 @@ export default function Timeline({ auth }) {
     setSelectedArtwork(currentArtworks[newIndex]);
   };
 
-  const handleSaveToCollection = async (artwork, shouldSave) => {
+  const handleSaveToCollection = async (artwork) => {
     if (!auth?.user) {
       window.location.href = '/login';
       return;
     }
 
     try {
-      if (shouldSave) {
-        const response = await fetch('/api/collection', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-          },
-          body: JSON.stringify({
-            artwork_id: artwork.id,
-            title: artwork.title,
-            artist: artwork.artist,
-            year: artwork.year,
-            image: artwork.image,
-            period: artwork.period,
-            location: artwork.location,
-            description: artwork.description,
-          }),
-        });
+      const response = await fetch('/api/collection', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+        },
+        body: JSON.stringify({
+          artwork_id: artwork.id,
+          title: artwork.title,
+          artist: artwork.artist,
+          year: artwork.year,
+          image: artwork.image,
+          period: artwork.period,
+        }),
+      });
 
-        if (response.ok) {
-          setSavedArtworks([...savedArtworks, artwork.id]);
-        }
-      } else {
-        const response = await fetch(`/api/collection/${artwork.id}`, {
-          method: 'DELETE',
-          headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-          },
-        });
-        if (response.ok) {
-          setSavedArtworks(savedArtworks.filter(id => id !== artwork.id));
-        }
+      if (response.ok) {
+        setSavedArtworks([...savedArtworks, artwork.id]);
       }
     } catch (error) {
-      console.error('Error saving/removing artwork:', error);
+      console.error('Error saving artwork:', error);
     }
   };
 
@@ -222,11 +208,12 @@ export default function Timeline({ auth }) {
     <>
       <Head title="Chronicles of Human Creativity" />
       
-      <div id="timeline-start">
+      <div id="timeline-start" className="relative">
         <ImmersiveScrollStory 
           periods={timelinePeriods}
           artworksData={timelineData}
           onArtworkClick={handleArtworkClick}
+          isLoading={isLoading} // ✅ Pass loading state
         />
       </div>
 
@@ -234,9 +221,13 @@ export default function Timeline({ auth }) {
         <ArtworkModal
           artwork={selectedArtwork}
           onClose={handleClose}
-          periodColor={timelinePeriods.find(p => p.id === selectedArtwork.periodId)?.color}
+          onPrev={handlePrev}
+          onNext={handleNext}
+          hasPrev={currentIndex > 0}
+          hasNext={currentIndex < currentArtworks.length - 1}
           isSaved={savedArtworks.includes(selectedArtwork.id)}
-          onSave={handleSaveToCollection}
+          onSave={() => handleSaveToCollection(selectedArtwork)}
+          onRemove={() => handleRemoveFromCollection(selectedArtwork.id)}
           isAuthenticated={!!auth?.user}
         />
       )}

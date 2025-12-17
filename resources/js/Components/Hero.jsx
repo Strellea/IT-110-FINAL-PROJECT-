@@ -1,22 +1,21 @@
 import React from "react";
 // import ThreeBackground from "./ThreeBackground";  
-import { motion, useViewportScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion"; // ✅ Changed here
 
 export default function Hero({ onBegin }) {
-  const { scrollY } = useViewportScroll();
-  const bgY = useTransform(scrollY, [0, 300], [0, -120]);
-
-  // Fade out hero as user scrolls
-  const heroOpacity = useTransform(scrollY, [0, 300], [1, 0]);
-  const heroScale = useTransform(scrollY, [0, 300], [1, 0.95]);
+  const { scrollY } = useScroll(); // ✅ Changed here
+  
+  // Remove these if you're not using them:
+  // const bgY = useTransform(scrollY, [0, 300], [0, -120]);
+  // const heroOpacity = useTransform(scrollY, [0, 300], [1, 0]);
+  // const heroScale = useTransform(scrollY, [0, 300], [1, 0.95]);
 
   return (
     <section className="relative h-screen w-full overflow-hidden bg-black">
-
-      {/* 3D BACKGROUND 
-      <div className="absolute inset-0 z-0">
+      {/* 3D BACKGROUND */}
+      {/* <div className="absolute inset-0 z-0">
         <ThreeBackground />
-      </div> 
+      </div> */}
 
       {/* CONTENT */}
       <div className="relative z-30 max-w-7xl mx-auto px-6 h-full flex items-center justify-center text-center">
@@ -51,9 +50,9 @@ export default function Hero({ onBegin }) {
               </motion.span>
             ))}
 
-             <br />
+            <br />
 
-             {"Human Creativity".split("").map((letter, index) => (
+            {"Human Creativity".split("").map((letter, index) => (
               <motion.span
                 key={"line2-" + index}
                 variants={{
@@ -90,7 +89,6 @@ export default function Hero({ onBegin }) {
             Begin the Journey
           </motion.button>
         </div>
-
       </div>
     </section>
   );
